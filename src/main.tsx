@@ -1,33 +1,38 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import './global.css'
-import { Toaster } from 'react-hot-toast'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import Page01 from './pages/navigation/Page01'
-import Page02 from './pages/navigation/Page02'
-import ErrorPage from './pages/navigation/Error'
-import Login from './pages/login'
-import { AuthProvider } from './context/AuthContext'
-import PrivateRoutes from './utils/PrivateRoutes'
-import { Home } from './pages/home'
+import ReactDOM from "react-dom/client";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import { AuthProvider } from "./context/AuthContext";
+import PrivateRoutes from "./utils/PrivateRoutes";
+import Initial from "./pages/Initial";
+import SignUp from "./pages/SignUp";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import Discs from "./pages/Discs";
+import "./index.css";
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.Fragment>
-    <Toaster position='top-right' toastOptions={{ duration: 2000 }}/>
-    <AuthProvider>
-      {/* React Router Dom */}
-      <BrowserRouter>
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <>
+    <Toaster position="top-right" reverseOrder />
+    <Router>
+      <AuthProvider>
         <Routes>
-          <Route path='*' element={<ErrorPage/>}/>
-          <Route path='/' index element={<Home/>}/>
-          <Route path='/login' element={<Login/>}/>
-          <Route path='page01' element={<PrivateRoutes />}>
-            <Route path='/page01' element={<Page01/>}/>
+          <Route
+            path="*"
+            element={
+              <h1 className="mt-8 text-3xl text-center">
+                Página não encontrada.
+              </h1>
+            }
+          />
+          <Route path="/" index element={<Initial />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<PrivateRoutes />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/my-discs" element={<Discs />} />
           </Route>
-          <Route path='/page02' element={<Page02/>}/>
         </Routes>
-      </BrowserRouter>
-      {/* React Router Dom */}
-    </AuthProvider>
-  </React.Fragment>
-)
+      </AuthProvider>
+    </Router>
+  </>
+);

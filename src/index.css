@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .paused {
+    animation-play-state: paused;
+  }
+}
+
+:root {
+  font-family: Poppins;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --border: 214.3 31.8% 91.4%;
+}

@@ -1,68 +1,89 @@
-import { UserModel } from "@/models/UserModel";
-import { albumApi, userApi } from "@/services/apiService";
 import { createContext, useCallback, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { albumApi, userApi } from "../services/apiService";
+import { UserData } from "../types/UserData";
 
-interface AuthContextModel extends UserModel{
-    isAuthenticated: boolean,
-    login: (email: string, password: string) => Promise<string | void>;
-    logout: () => void;
+interface AuthContext {
+  isAuthenticated?: boolean;
+  signUp: (userData: UserData) => Promise<string | void>;
+  login: (userData: UserData) => Promise<string | void>;
+  logout: () => void;
 }
 
 interface Props {
-    children: React.ReactNode
+  children: React.ReactNode;
 }
 
-export const AuthContext = createContext({} as AuthContextModel);
+export const AuthContext = createContext({} as AuthContext);
 
-export const AuthProvider: React.FC<Props> = ({children}) => {
-    const [userData, setUserData] = useState<UserModel>();
-    const[isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+export const AuthProvider: React.FC<Props> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>();
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        const data: UserModel = JSON.parse(localStorage.getItem('@Auth.Data') || "{}")
-        if(data.id){
-            setIsAuthenticated(true);
-            setUserData(data);
-        }
-        Logout();
-        
-        //se o data for vazio, fazer o logOut, sera o estado com nulo fazendo com que o isAuthenticated torne-se falso
-    }, [])
+  useEffect(() => {
+    const data = localStorage.getItem("@Auth.Data");
 
-    const Login = useCallback(async (email: string, password: string) => {
-        const respAuth = await userApi.post('/users/auth', {email, password});
+    if (data) {
+      setIsAuthenticated(JSON.parse(data));
 
-        if(respAuth instanceof Error) {
-            return respAuth.message;
-        }
+      userApi.defaults.headers.common.Authorization = `Basic ${
+        JSON.parse(data).token
+      }`;
 
-        localStorage.setItem('@Auth.Token', JSON.stringify(respAuth.data.token));
+      albumApi.defaults.headers.common.Authorization = `Basic ${
+        JSON.parse(data).token
+      }`;
+    } else {
+      setIsAuthenticated(false);
+    }
+  }, []);
 
-        
-        userApi.defaults.headers.common.Authorization = `Basic ${respAuth.data.token}`;
-        albumApi.defaults.headers.common.Authorization = `Basic ${respAuth.data.token}`;
-        const respUserInfo = await userApi.get(`/users/${respAuth.data.id}`);
+  const signUp = useCallback(async (userData: UserData) => {
+    await userApi
+      .post("/users/create", userData)
+      .then(() => {
+        toast.success("Conta criada com sucesso!");
+        login({ email: userData.email, password: userData.password });
+      })
+      .catch(() => {
+        toast.error(
+          "O email informado já está sendo utilizado por outro usuário."
+        );
+      });
+  }, []);
 
-        if(respUserInfo instanceof Error) {
-            return respUserInfo.message;
-        }
+  const login = useCallback(async (userData: UserData) => {
+    await userApi
+      .post("/users/auth", userData)
+      .then(async (response) => {
+        userApi.defaults.headers.common.Authorization = `Basic ${response.data.token}`;
+        albumApi.defaults.headers.common.Authorization = `Basic ${response.data.token}`;
 
-        localStorage.setItem('@Auth.Data', JSON.stringify(respUserInfo.data));
-        setUserData(respUserInfo.data);
+        const userInfo = (await userApi.get(`/users/${response.data.id}`)).data;
+        userInfo.token = response.data.token;
+
+        toast.success("Login realizado com sucesso!");
+        localStorage.setItem("@Auth.Data", JSON.stringify(userInfo));
         setIsAuthenticated(true);
-    }, []);
+        navigate("/dashboard");
+      })
+      .catch(() => {
+        toast.error(
+          "Email ou senha inválidos. Por favor, confira os dados ou se cadastre antes de realizar o login."
+        );
+      });
+  }, []);
 
-    const Logout = useCallback(() => {
-        localStorage.removeItem('@Auth.Data');
-        setUserData(undefined);
-        setIsAuthenticated(false);
-        return <Navigate to='/' />;
-    }, [])
+  const logout = useCallback(() => {
+    setIsAuthenticated(false);
+    localStorage.removeItem("@Auth.Data");
+    navigate("/");
+  }, []);
 
-    return(
-        <AuthContext.Provider value={{isAuthenticated: isAuthenticated, ...userData, login: Login, logout: Logout}}>
-            { children }
-        </AuthContext.Provider>
-    )
-}
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, signUp, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
